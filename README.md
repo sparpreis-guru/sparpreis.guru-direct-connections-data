@@ -1,7 +1,7 @@
 # sparpreis.guru direct-connections data
 
 This repository publishes the generated direct-connections database used by
-[sparpreis.guru](https://github.com/XLixl4snSU/sparpreis.guru). The database is
+[sparpreis.guru](https://github.com/sparpreis-guru/sparpreis.guru). The database is
 distributed as release assets and is intentionally not committed to Git.
 
 ## Rolling release
@@ -27,7 +27,7 @@ The rolling data release is the repository's latest release.
 ## Automation
 
 The workflow runs daily at 07:00 UTC and can also be started manually. It checks
-out the generator from `XLixl4snSU/sparpreis.guru`, downloads the current
+out the generator from `sparpreis-guru/sparpreis.guru`, downloads the current
 GTFS.de feeds, builds the SQLite database, validates its complete compressed
 payload, uploads the database and checksum, and prunes older assets.
 
