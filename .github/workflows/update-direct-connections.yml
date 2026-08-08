@@ -1,0 +1,104 @@
+name: Update direct connections data
+
+on:
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: direct-connections-data
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: direct-connections-data
+  RETAIN_DATABASE_VERSIONS: "3"
+
+jobs:
+  publish:
+    name: Build, validate, and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out publisher repository
+        uses: actions/checkout@v7
+
+      - name: Check out database generator
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ vars.SOURCE_REPOSITORY || 'XLixl4snSU/sparpreis.guru' }}
+          ref: ${{ vars.SOURCE_REF || 'main' }}
+          path: generator-source
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Build database
+        run: >-
+          python generator-source/scripts/build-direct-connections.py
+          --output "$RUNNER_TEMP/direct-connections.db"
+
+      - name: Validate database
+        id: validate
+        run: >-
+          python scripts/validate_database.py
+          "$RUNNER_TEMP/direct-connections.db"
+          --github-output "$GITHUB_OUTPUT"
+
+      - name: Prepare release assets
+        id: assets
+        env:
+          DATABASE_VERSION: ${{ steps.validate.outputs.version }}
+          DATABASE_SHA256: ${{ steps.validate.outputs.sha256 }}
+        run: |
+          database_asset="direct-connections-${DATABASE_VERSION}.db"
+          checksum_asset="${database_asset}.sha256"
+          mv "$RUNNER_TEMP/direct-connections.db" "$RUNNER_TEMP/${database_asset}"
+          printf '%s  %s\n' "$DATABASE_SHA256" "$database_asset" > "$RUNNER_TEMP/${checksum_asset}"
+          echo "database_asset=${database_asset}" >> "$GITHUB_OUTPUT"
+          echo "checksum_asset=${checksum_asset}" >> "$GITHUB_OUTPUT"
+          echo "database_size=$(stat --format='%s' "$RUNNER_TEMP/${database_asset}")" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure rolling release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --target "$GITHUB_SHA" \
+              --title "Direct connections data" \
+              --notes "Automated rolling release of validated sparpreis.guru direct-connections data." \
+              --latest
+          fi
+
+      - name: Upload database and checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DATABASE_ASSET: ${{ steps.assets.outputs.database_asset }}
+          CHECKSUM_ASSET: ${{ steps.assets.outputs.checksum_asset }}
+        run: |
+          gh release upload "$RELEASE_TAG" \
+            "$RUNNER_TEMP/${DATABASE_ASSET}#SQLite database ${DATABASE_ASSET}" \
+            "$RUNNER_TEMP/${CHECKSUM_ASSET}#SHA-256 checksum ${CHECKSUM_ASSET}" \
+            --clobber
+
+      - name: Verify upload and prune old assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DATABASE_ASSET: ${{ steps.assets.outputs.database_asset }}
+          DATABASE_SIZE: ${{ steps.assets.outputs.database_size }}
+          DATABASE_SHA256: ${{ steps.validate.outputs.sha256 }}
+        run: >-
+          python scripts/manage_release_assets.py
+          --repository "$GITHUB_REPOSITORY"
+          --tag "$RELEASE_TAG"
+          --keep "$RETAIN_DATABASE_VERSIONS"
+          --required-database "$DATABASE_ASSET"
+          --expected-size "$DATABASE_SIZE"
+          --expected-sha256 "$DATABASE_SHA256"
