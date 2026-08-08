@@ -29,7 +29,7 @@ jobs:
       - name: Check out database generator
         uses: actions/checkout@v7
         with:
-          repository: ${{ vars.SOURCE_REPOSITORY || 'XLixl4snSU/sparpreis.guru' }}
+          repository: ${{ vars.SOURCE_REPOSITORY || 'sparpreis-guru/sparpreis.guru' }}
           ref: ${{ vars.SOURCE_REF || 'main' }}
           path: generator-source
           persist-credentials: false
