@@ -14,11 +14,21 @@ from urllib.request import Request, urlopen
 
 
 API_ROOT = "https://api.github.com"
-ASSET_PATTERN = re.compile(r"^direct-connections-(\d{8})\.db(?:\.sha256)?$")
+ASSET_PATTERN = re.compile(
+    r"^direct-connections-(?P<timestamp>\d{8}T\d{6}Z)-"
+    r"(?P<digest>[0-9a-f]{12})\.db(?:\.sha256)?$"
+)
 
 
 class ReleaseError(RuntimeError):
     """Raised when a release upload is missing or inconsistent."""
+
+
+def asset_build_id(asset_name: str) -> str | None:
+    match = ASSET_PATTERN.fullmatch(asset_name)
+    if not match:
+        return None
+    return f"{match.group('timestamp')}-{match.group('digest')}"
 
 
 def github_request(path: str, token: str, method: str = "GET") -> object | None:
@@ -86,8 +96,14 @@ def main() -> None:
 
     remote_digest = database_asset.get("digest")
     expected_digest = f"sha256:{args.expected_sha256.lower()}"
-    if remote_digest and remote_digest.lower() != expected_digest:
+    if not isinstance(remote_digest, str):
+        raise ReleaseError("Uploaded database digest is missing")
+    if remote_digest.lower() != expected_digest:
         raise ReleaseError("Uploaded database digest does not match the local file")
+
+    expected_prefix = args.expected_sha256[:12].lower()
+    if not args.required_database.endswith(f"-{expected_prefix}.db"):
+        raise ReleaseError("Database asset name does not contain the digest prefix")
 
     checksum_name = f"{args.required_database}.sha256"
     if not any(asset.get("name") == checksum_name for asset in assets):
@@ -95,11 +111,13 @@ def main() -> None:
 
     assets_by_version: dict[str, list[dict]] = defaultdict(list)
     for asset in assets:
-        match = ASSET_PATTERN.fullmatch(str(asset.get("name", "")))
-        if match:
-            assets_by_version[match.group(1)].append(asset)
+        build_id = asset_build_id(str(asset.get("name", "")))
+        if build_id:
+            assets_by_version[build_id].append(asset)
 
     versions = sorted(assets_by_version, reverse=True)
+    if not versions:
+        raise ReleaseError("Release contains no recognized database assets")
     if args.required_database not in {
         asset.get("name") for asset in assets_by_version.get(versions[0], [])
     }:
