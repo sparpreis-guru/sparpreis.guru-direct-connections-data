@@ -9,6 +9,7 @@ import hashlib
 import json
 import re
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -67,7 +68,18 @@ def validate_database(database_path: Path) -> dict[str, str | int]:
 
         version = metadata.get("version", "")
         require(VERSION_PATTERN.fullmatch(version) is not None, f"Invalid version: {version}")
-        require(bool(metadata.get("generatedAt")), "generatedAt metadata is missing")
+        generated_at_text = metadata.get("generatedAt", "")
+        require(bool(generated_at_text), "generatedAt metadata is missing")
+        try:
+            generated_at = datetime.fromisoformat(generated_at_text.replace("Z", "+00:00"))
+        except ValueError as error:
+            raise ValidationError(f"Invalid generatedAt timestamp: {generated_at_text}") from error
+        require(generated_at.tzinfo is not None, "generatedAt timestamp must include a timezone")
+        generated_at_utc = generated_at.astimezone(timezone.utc)
+        require(
+            generated_at_utc.strftime("%Y%m%d") == version,
+            "Database version and generatedAt date differ",
+        )
 
         service_dates = json.loads(metadata.get("serviceDates", "[]"))
         require(isinstance(service_dates, list) and service_dates, "No service dates found")
@@ -125,7 +137,8 @@ def validate_database(database_path: Path) -> dict[str, str | int]:
 
         return {
             "version": version,
-            "generated_at": metadata["generatedAt"],
+            "generated_at": generated_at_utc.isoformat(),
+            "asset_timestamp": generated_at_utc.strftime("%Y%m%dT%H%M%SZ"),
             "sha256": digest.hexdigest(),
             "database_bytes": database_size,
             "station_count": len(stations),

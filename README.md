@@ -7,14 +7,17 @@ distributed as release assets and is intentionally not committed to Git.
 ## Rolling release
 
 The scheduled workflow maintains one release with the fixed tag
-`direct-connections-data`. Each successful build uploads two versioned assets:
+`direct-connections-data`. Each successful build uploads two immutable assets:
 
-- `direct-connections-YYYYMMDD.db`
-- `direct-connections-YYYYMMDD.db.sha256`
+- `direct-connections-YYYYMMDDTHHMMSSZ-SHA256PREFIX.db`
+- `direct-connections-YYYYMMDDTHHMMSSZ-SHA256PREFIX.db.sha256`
 
-Only the three newest database versions and their checksums are retained. A new
-database is built and validated before an older version is removed, so a failed
-build or upload cannot remove the current fallback.
+The UTC timestamp orders multiple builds from the same day, while the digest
+prefix makes their content identity visible. Database assets are never
+overwritten in place. Only the three newest database builds and their checksums
+are retained. A new database is built, validated, uploaded, and verified before
+an older version is removed, so a failed build or upload cannot remove the
+current fallback.
 
 Clients discover the available assets through the stable GitHub API endpoint:
 
@@ -23,6 +26,8 @@ https://api.github.com/repos/sparpreis-guru/sparpreis.guru-direct-connections-da
 ```
 
 The rolling data release is the repository's latest release.
+The API-provided full SHA-256 digest remains the source of truth for download
+integrity; the digest prefix in the filename is only a human-readable identifier.
 
 ## Automation
 

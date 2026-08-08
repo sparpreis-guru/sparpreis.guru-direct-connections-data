@@ -54,10 +54,11 @@ jobs:
       - name: Prepare release assets
         id: assets
         env:
-          DATABASE_VERSION: ${{ steps.validate.outputs.version }}
+          ASSET_TIMESTAMP: ${{ steps.validate.outputs.asset_timestamp }}
           DATABASE_SHA256: ${{ steps.validate.outputs.sha256 }}
         run: |
-          database_asset="direct-connections-${DATABASE_VERSION}.db"
+          digest_prefix="${DATABASE_SHA256:0:12}"
+          database_asset="direct-connections-${ASSET_TIMESTAMP}-${digest_prefix}.db"
           checksum_asset="${database_asset}.sha256"
           mv "$RUNNER_TEMP/direct-connections.db" "$RUNNER_TEMP/${database_asset}"
           printf '%s  %s\n' "$DATABASE_SHA256" "$database_asset" > "$RUNNER_TEMP/${checksum_asset}"
@@ -85,8 +86,7 @@ jobs:
         run: |
           gh release upload "$RELEASE_TAG" \
             "$RUNNER_TEMP/${DATABASE_ASSET}#SQLite database ${DATABASE_ASSET}" \
-            "$RUNNER_TEMP/${CHECKSUM_ASSET}#SHA-256 checksum ${CHECKSUM_ASSET}" \
-            --clobber
+            "$RUNNER_TEMP/${CHECKSUM_ASSET}#SHA-256 checksum ${CHECKSUM_ASSET}"
 
       - name: Verify upload and prune old assets
         env:
