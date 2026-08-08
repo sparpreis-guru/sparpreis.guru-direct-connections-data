@@ -15,10 +15,8 @@ from urllib.request import Request, urlopen
 
 API_ROOT = "https://api.github.com"
 ASSET_PATTERN = re.compile(
-    r"^direct-connections-(?:"
-    r"(?P<timestamp>\d{8}T\d{6}Z)-(?P<digest>[0-9a-f]{12})"
-    r"|(?P<legacy_date>\d{8})"
-    r")\.db(?:\.sha256)?$"
+    r"^direct-connections-(?P<timestamp>\d{8}T\d{6}Z)-"
+    r"(?P<digest>[0-9a-f]{12})\.db(?:\.sha256)?$"
 )
 
 
@@ -30,9 +28,7 @@ def asset_build_id(asset_name: str) -> str | None:
     match = ASSET_PATTERN.fullmatch(asset_name)
     if not match:
         return None
-    if match.group("timestamp") and match.group("digest"):
-        return f"{match.group('timestamp')}-{match.group('digest')}"
-    return f"{match.group('legacy_date')}T000000Z-legacy"
+    return f"{match.group('timestamp')}-{match.group('digest')}"
 
 
 def github_request(path: str, token: str, method: str = "GET") -> object | None:
