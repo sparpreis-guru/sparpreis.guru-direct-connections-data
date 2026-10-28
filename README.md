@@ -7,8 +7,10 @@ distributed as release assets and is intentionally not committed to Git.
 ## Latest successful publication
 
 <!-- publication-status:start -->
-The next successful workflow run on the default branch will record the data
-publication time, station count, connection count, and release link here.
+- Last successful publication: **2026-10-28 14:12:52 UTC**
+- Stations: **7,573**
+- Direct connections: **247,620**
+- [Download the latest databases](https://github.com/sparpreis-guru/sparpreis.guru-direct-connections-data/releases/tag/direct-connections-data)
 <!-- publication-status:end -->
 
 ## Rolling release
