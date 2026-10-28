@@ -4,6 +4,13 @@ This repository publishes the generated direct-connections database used by
 [sparpreis.guru](https://github.com/sparpreis-guru/sparpreis.guru). The database is
 distributed as release assets and is intentionally not committed to Git.
 
+## Latest successful publication
+
+<!-- publication-status:start -->
+The next successful workflow run on the default branch will record the data
+publication time, station count, connection count, and release link here.
+<!-- publication-status:end -->
+
 ## Rolling release
 
 The scheduled workflow maintains one release with the fixed tag
@@ -35,6 +42,14 @@ The workflow runs daily at 07:00 UTC and can also be started manually. It checks
 out the generator from `sparpreis-guru/sparpreis.guru`, downloads the current
 GTFS.de feeds, builds the SQLite database, validates its complete compressed
 payload, uploads the database and checksum, and prunes older assets.
+
+After successful upload verification and pruning, runs on the default branch
+update the publication status above and commit the README as `github-actions[bot]`.
+This records the latest successful publication and keeps the repository active
+so GitHub does not disable its scheduled workflow after 60 days of inactivity.
+Failed publications leave the last successful status unchanged. The commit uses
+the built-in `GITHUB_TOKEN`; no additional secret is required. Repository rules
+must allow this bot to push to the default branch.
 
 The source repository can be changed without editing the workflow by defining
 the repository variable `SOURCE_REPOSITORY`. `SOURCE_REF` can similarly select

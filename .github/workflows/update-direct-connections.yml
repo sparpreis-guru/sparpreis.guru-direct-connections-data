@@ -102,3 +102,25 @@ jobs:
           --required-database "$DATABASE_ASSET"
           --expected-size "$DATABASE_SIZE"
           --expected-sha256 "$DATABASE_SHA256"
+
+      - name: Record successful publication in README
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        env:
+          STATION_COUNT: ${{ steps.validate.outputs.station_count }}
+          CONNECTION_COUNT: ${{ steps.validate.outputs.connection_count }}
+        run: |
+          python scripts/update_publication_status.py README.md \
+            --published-at "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --station-count "$STATION_COUNT" \
+            --connection-count "$CONNECTION_COUNT" \
+            --release-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$RELEASE_TAG"
+          if git diff --quiet -- README.md; then
+            echo "Publication status is unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- README.md
+          git commit -m "docs: update direct-connections publication status"
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:refs/heads/$GITHUB_REF_NAME"
