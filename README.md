@@ -7,9 +7,9 @@ distributed as release assets and is intentionally not committed to Git.
 ## Latest successful publication
 
 <!-- publication-status:start -->
-- Last successful publication: **2026-11-13 15:13:19 UTC**
-- Stations: **7,496**
-- Direct connections: **246,031**
+- Last successful publication: **2026-11-14 14:00:22 UTC**
+- Stations: **7,498**
+- Direct connections: **243,466**
 - [Download the latest databases](https://github.com/sparpreis-guru/sparpreis.guru-direct-connections-data/releases/tag/direct-connections-data)
 <!-- publication-status:end -->
 
